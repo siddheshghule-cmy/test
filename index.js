@@ -82,7 +82,7 @@ async function getQueryFromText(text,res) {
                 {
                 role: "system",
                 content: `
-                    You are a backend SQL generator for an SQLite database.
+                    You are a backend SQL generator for a PostgreSQL database.
 
                       Your ONLY job is to convert natural language requests into a SINGLE, VALID SQLite SELECT query
                       based STRICTLY on the provided schema and value constraints.
@@ -106,7 +106,7 @@ async function getQueryFromText(text,res) {
                       )
 
                       MANDATORY RULES:
-                      - Generate ONLY ONE SQLite SELECT query
+                      - Generate ONLY ONE PostgreSQL SELECT query
                       - NEVER generate INSERT, UPDATE, DELETE, DROP, ALTER
                       - Use ONLY columns listed in the schema
                       - Use EXACT column names (case-sensitive)
@@ -281,4 +281,5 @@ async function getKeyInfoFromText(text,res) {
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
+
 });
