@@ -8,9 +8,10 @@ import dotenv from "dotenv";
 dotenv.config();
 
 const app = express();
-const PORT = 5000;
+const PORT = process.env.PORT || 5000;
 
 console.log("API key:", process.env.GROQ_API_KEY);
+console.log("DATABASE_URL:", process.env.DATABASE_URL ? "SET" : "NOT SET");
 
 app.use(cors());
 
@@ -20,10 +21,79 @@ const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY,
 });
 
+// ---------------------- TEST CONNECTION ENDPOINT ----------------------
+
+app.get("/health", (req, res) => {
+  res.json({ 
+    status: "Server is running",
+    port: PORT,
+    database_url_set: !!process.env.DATABASE_URL
+  });
+});
+
+app.get("/test-connection", (req, res) => {
+  console.log("\n=== TESTING DATABASE CONNECTION ===");
+  console.log("DATABASE_URL:", process.env.DATABASE_URL ? "✅ SET" : "❌ NOT SET");
+  
+  // Test 1: Simple SELECT
+  db.all("SELECT 1 as test;", [], (err, rows) => {
+    if (err) {
+      console.error("❌ Connection Test FAILED:", err.message);
+      return res.status(500).json({ 
+        status: "❌ Database connection FAILED",
+        error: err.message 
+      });
+    }
+    
+    console.log("✅ Basic connection successful");
+    
+    // Test 2: Check if patients table exists
+    db.all(
+      "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'patients';",
+      [],
+      (err, tables) => {
+        if (err) {
+          return res.status(500).json({ 
+            status: "⚠️ Connection OK but error checking tables",
+            error: err.message 
+          });
+        }
+        
+        if (tables.length === 0) {
+          return res.status(500).json({ 
+            status: "⚠️ Database connected but 'patients' table NOT FOUND",
+            tables_found: []
+          });
+        }
+        
+        // Test 3: Count patients
+        db.all("SELECT COUNT(*) as count FROM patients;", [], (err, count) => {
+          if (err) {
+            return res.status(500).json({ 
+              status: "⚠️ Table exists but SELECT failed",
+              error: err.message 
+            });
+          }
+          
+          console.log("✅ Database fully functional");
+          return res.json({ 
+            status: "✅ Database connection SUCCESSFUL",
+            database: "patientsdata",
+            table: "patients",
+            rows_in_table: count[0].count
+          });
+        });
+      }
+    );
+  });
+});
+
 // ---------------------- Helper Functions ----------------------
 
 async function fetchDataUsingQuery(query, text) {
   console.log("Executing SQL query...");
+  console.log("QUERY:", query);
+  
   return new Promise((resolve, reject) => {
     db.all(query, [], (err, rows) => {
       if (err) {
@@ -39,6 +109,8 @@ async function fetchDataUsingQuery(query, text) {
 async function getQueryFromText(text) {
   try {
     console.log("Generating SQL from text...");
+    console.log("Input text:", text);
+    
     const sqlResponse = await groq.chat.completions.create({
       model: "llama-3.3-70b-versatile",
       messages: [
@@ -158,6 +230,7 @@ app.post("/transcribe", upload.single("audio"), async (req, res) => {
       response_format: "json",
     });
 
+    console.log("Transcription received:", transcription.text);
     fs.unlinkSync(webmPath);
 
     const result = await getQueryFromText(transcription.text);
@@ -187,6 +260,7 @@ app.post("/info", upload.single("audio"), async (req, res) => {
       response_format: "json",
     });
 
+    console.log("Transcription received:", transcription.text);
     fs.unlinkSync(webmPath);
 
     const info = await getKeyInfoFromText(transcription.text);
@@ -203,5 +277,5 @@ app.post("/info", upload.single("audio"), async (req, res) => {
 // ---------------------- Start Server ----------------------
 
 app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
+  console.log(`Server running on port ${PORT}`);
 });
