@@ -1,6 +1,7 @@
-import { Pool } from 'pg';
+import pkg from 'pg';
 import dotenv from 'dotenv';
 
+const { Pool } = pkg;
 dotenv.config();
 
 const pool = new Pool({
@@ -11,6 +12,7 @@ const pool = new Pool({
   database: process.env.DB_NAME,
 });
 
+// Helper function to execute queries
 const db = {
   all: (query, params, callback) => {
     pool.query(query, params, (err, result) => {
