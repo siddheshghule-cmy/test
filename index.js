@@ -9,7 +9,7 @@ import dotenv from "dotenv";
 dotenv.config();
 
 const app = express();
-const PORT = 5000;
+const PORT =5000;  // Render assigns dynamic port
 
 console.log("API key:",process.env.GROQ_API_KEY);
 
@@ -84,7 +84,7 @@ async function getQueryFromText(text,res) {
                 content: `
                     You are a backend SQL generator for a PostgreSQL database.
 
-                      Your ONLY job is to convert natural language requests into a SINGLE, VALID SQLite SELECT query
+                      Your ONLY job is to convert natural language requests into a SINGLE, VALID PostgreSQL SELECT query
                       based STRICTLY on the provided schema and value constraints.
 
                       Database schema:
@@ -281,5 +281,4 @@ async function getKeyInfoFromText(text,res) {
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
-
 });
